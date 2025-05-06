@@ -1,24 +1,17 @@
 from dotenv import load_dotenv
 import os
 
-from etl.extract.extract import pytest_confirm
+from etl.extract.extract import get_request_coingecko_api
 
-# from etl.extract import pytest_confirm
 
+print("Fetching API Key...")
 # Load env variables
 load_dotenv()
 API_KEY = os.environ.get('API_KEY')
-print(API_KEY)
-
-# ETL pipeline will be run here - in one function 
-
-print("Setting up environment...")
-pytest_confirm(1)
-# Load env variables
-print("Environment setup complete.")
+print("API key retrieved.")
 
 print("Starting data extraction...")
-# Extract data
+get_request_coingecko_api(API_KEY)
 print("Data extraction complete.")
 
 print("Starting data transformation...")
