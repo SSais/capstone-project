@@ -1,21 +1,11 @@
-from dotenv import load_dotenv
-import os
-
-from etl.extract.extract import get_request_coingecko_api
-
-
-print("Fetching API Key...")
-# Load env variables
-load_dotenv()
-API_KEY = os.environ.get('API_KEY')
-print("API key retrieved.")
+from etl.extract.extract import extract_data
 
 print("Starting data extraction...")
-get_request_coingecko_api(API_KEY)
+extracted_data = extract_data()
 print("Data extraction complete.")
 
 print("Starting data transformation...")
-# Transform data
+# transformed_data = transformed_data(extracted_data)
 print("Data transformation complete.")
 
 print("Loading data into Pagilla database...")

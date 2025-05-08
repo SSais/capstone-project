@@ -1,16 +1,22 @@
-import requests
+import pandas as pd
+from etl.extract.extract_alphavantage_api import get_request_daily_alphavantage, get_request_overview_alphavantage
 
 
-def get_request_coingecko_api(api_key):
-    try:
-        url = "https://api.coingecko.com/api/v3/coins/list"
-        headers = {
-            "accept": "application/json",
-            "x-cg-api-key": api_key
-        }
+def extract_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
-        response = requests.get(url, headers=headers)
-        print(response.status_code)
-        return response.text
-    except Exception as e:
-        raise Exception(f'An unexpected error occurred.\nError: {e}.')
+    argenx_daily_data = get_request_daily_alphavantage('ARGX')
+    print('Argenx daily extraction has been completed')
+    genmab_daily_data = get_request_daily_alphavantage('GMAB')
+    print('Genmab daily extraction has been completed')
+
+    argenx_overview_data = get_request_overview_alphavantage('ARGX')
+    print('Argenx overview extraction has been completed')
+    genmab_overview_data = get_request_overview_alphavantage('GMAB')
+    print('Genmab overview extraction has been completed')
+
+    return (
+            argenx_daily_data,
+            genmab_daily_data,
+            argenx_overview_data,
+            genmab_overview_data
+            )
