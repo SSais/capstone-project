@@ -1,5 +1,17 @@
-# def transform_data():
-    # This function will accept the tuple of dataframes. 
-    # The data frames will go through spefific functions.
-    
-    # But I need to split this into two parts. 1. Initial data. 2. When there is an existing databse.
+from etl.transform.clean_daily_stock import clean_daily_stock
+from etl.transform.clean_company_overview import clean_company_overview
+import pandas as pd
+
+
+def transform_data(data: tuple) -> tuple[pd.DataFrame]:
+
+    transformed_argx_daily = clean_daily_stock(data[0], 'ARGX')
+    transformed_gmab_daily = clean_daily_stock(data[1], 'GMAB')
+
+    transformed_company_overview = clean_company_overview(data[2], data[3])
+
+    return (
+            transformed_argx_daily,
+            transformed_gmab_daily,
+            transformed_company_overview
+            )
