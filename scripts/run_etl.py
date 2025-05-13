@@ -1,5 +1,6 @@
 from etl.extract.extract import extract_data
 from etl.transform.transform import transform_data
+from etl.load.load import load_data
 
 print("Starting data extraction...")
 extracted_data = extract_data()
@@ -10,7 +11,7 @@ transformed_data = transform_data(extracted_data)
 print("Data transformation complete.")
 
 print("Loading data into Pagilla database...")
-# Load data into database
+load_data(transformed_data)
 print("Data loading complete.")
 
 
