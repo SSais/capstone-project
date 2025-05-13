@@ -7,6 +7,7 @@ debugpy==1.8.14
 decorator==5.2.1
 dotenv==0.9.9
 executing==2.2.0
+greenlet==3.2.2
 idna==3.10
 iniconfig==2.1.0
 ipykernel==6.29.5
@@ -26,6 +27,7 @@ platformdirs==4.3.7
 pluggy==1.5.0
 prompt_toolkit==3.0.51
 psutil==7.0.0
+psycopg2-binary==2.9.10
 ptyprocess==0.7.0
 pure_eval==0.2.3
 Pygments==2.19.1
@@ -36,9 +38,11 @@ pytz==2025.2
 pyzmq==26.4.0
 requests==2.32.3
 six==1.17.0
+SQLAlchemy==2.0.40
 stack-data==0.6.3
 tornado==6.4.2
 traitlets==5.14.3
+typing_extensions==4.13.2
 tzdata==2025.2
 urllib3==2.4.0
 wcwidth==0.2.13

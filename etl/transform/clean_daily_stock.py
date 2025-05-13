@@ -1,8 +1,8 @@
 import pandas as pd
 import timeit
 
-foreign_id_index = {'GMAB': 2,
-                    'ARGX': 1
+foreign_id_index = {'ARGX': 1,
+                    'GMAB': 2
                     }
 
 
@@ -11,16 +11,12 @@ def clean_daily_stock(dataframe: pd.DataFrame, symbol: str) -> pd.DataFrame:
 
     transformed_df = transpose_dataframe(dataframe)
     transformed_df = reset_dataframe_index(transformed_df)
-    print(transformed_df)
-
     transformed_df = sort_dates_asc(transformed_df)
-    print(transformed_df)
     transformed_df = rename_columns(transformed_df, ['date', 'open', 'high', 'low', 'close', 'volume'])
     transformed_df = round_price_2dp(transformed_df)
-    transformed_df = add_primary_id(transformed_df, 'daily_id')
+    transformed_df = add_primary_id(transformed_df, 'stock_id')
     transformed_df = add_foreign_id(transformed_df, 'company_id', symbol)
-    transformed_df = reorder_columns(transformed_df, ['daily_id', 'company_id', 'date', 'open', 'high', 'low', 'close', 'volume'])
-    print(transformed_df)
+    transformed_df = reorder_columns(transformed_df, ['stock_id', 'company_id', 'date', 'open', 'high', 'low', 'close', 'volume'])
 
     # Print time of extraction execution
     clean_daily_time = timeit.default_timer() - start_time
