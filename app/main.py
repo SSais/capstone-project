@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
 
-df1 = pd.read_csv('../etl/data/processed/cleaned_company_overview.csv')
-df2 = pd.read_csv('../etl/data/processed/cleaned_daily_ARGX.csv')
-df3 = pd.read_csv('../etl/data/processed/cleaned_daily_GMAB.csv')
-df4 = pd.read_csv('../etl/data/processed/cleaned_daily_PFE.csv')
-df5 = pd.read_csv('../etl/data/processed/cleaned_daily_GSK.csv')
+df1 = pd.read_csv('./etl/data/processed/cleaned_company_overview.csv')
+df2 = pd.read_csv('./etl/data/processed/cleaned_daily_ARGX.csv')
+df3 = pd.read_csv('./etl/data/processed/cleaned_daily_GMAB.csv')
+df4 = pd.read_csv('./etl/data/processed/cleaned_daily_PFE.csv')
+df5 = pd.read_csv('./etl/data/processed/cleaned_daily_GSK.csv')
 
 df_argenx = df2.merge(df1, how='inner', on='company_id')
 df_gmab = df3.merge(df1, how='inner', on='company_id')
