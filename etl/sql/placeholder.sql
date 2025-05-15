@@ -39,3 +39,26 @@ CREATE TABLE daily_stocks_argx (
     "close" NUMERIC,
     volume NUMERIC
 );
+
+CREATE TABLE daily_stocks_pfe (
+	stock_id INTEGER PRIMARY KEY,
+	company_id INTEGER REFERENCES company_overviews(company_id),
+	"date" TIMESTAMP,
+	"open" NUMERIC,
+	high NUMERIC,
+	low NUMERIC,
+    "close" NUMERIC,
+    volume NUMERIC
+);
+
+
+CREATE TABLE daily_stocks_gsk (
+	stock_id INTEGER PRIMARY KEY,
+	company_id INTEGER REFERENCES company_overviews(company_id),
+	"date" TIMESTAMP,
+	"open" NUMERIC,
+	high NUMERIC,
+	low NUMERIC,
+    "close" NUMERIC,
+    volume NUMERIC
+);

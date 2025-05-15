@@ -2,7 +2,9 @@ import pandas as pd
 import timeit
 
 foreign_id_index = {'ARGX': 1,
-                    'GMAB': 2
+                    'GMAB': 2,
+                    'PFE': 3,
+                    'GSK': 4
                     }
 
 
