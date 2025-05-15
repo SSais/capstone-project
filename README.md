@@ -14,3 +14,8 @@ to run all the tests enter:
 ```
 pytest
 ```
+
+To run streamlit locally: 
+```
+streamlit run app/main.py 
+```
