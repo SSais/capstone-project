@@ -20,7 +20,7 @@ full_df = pd.concat([intermediate_df1, intermediate_df2], ignore_index=True)
 
 def main():
     st.session_state['full_df'] = full_df    
-    
+
     main_page = st.Page(
         page='pages/main_page.py',
         title="Main Dashboard",
