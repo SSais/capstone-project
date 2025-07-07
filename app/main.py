@@ -8,10 +8,10 @@ import os
 load_dotenv()
 
 # St up S3 test bucket pathway
-S3_BUCKET_MAME= 'sbs-stock-dash-v1.0'
+S3_BUCKET_NAME= 'sbs-stock-dash-v1.0'
 S3_TEST_PATH = 'test/ticker-data/cleaned_daily_ARGX.csv'
 
-# Initialize the S3 client
+# Initialise the S3 client
 s3_client = boto3.client('s3')
 
 # Define a function to load data from S3 and cache it for 24 hours
@@ -29,7 +29,7 @@ def load_data_from_s3(bucket_name, file_path):
         return None
 
 # Load data from S3
-data = load_data_from_s3(S3_BUCKET_MAME, S3_TEST_PATH)
+data = load_data_from_s3(S3_BUCKET_NAME, S3_TEST_PATH)
 
 # df1 = pd.read_csv('etl/data/processed/cleaned_company_overview.csv')
 # df2 = pd.read_csv('etl/data/processed/cleaned_daily_ARGX.csv')
