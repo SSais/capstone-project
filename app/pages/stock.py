@@ -32,6 +32,10 @@ with st.sidebar:
 
 
 with tab1:
+    # Added as a test
+    st.dataframe(full_df)
+    
+    
     st.title(company_data['name'])
     st.subheader(f'**{company_data['symbol']}**')
     st.write(f'**{company_data['exchange']}: {company_data['currency']}**')
