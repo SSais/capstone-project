@@ -18,6 +18,8 @@ def lambda_handler(event, context):
     TICKER_NAMES = [
         'ARGX',  # Argenx
         'GMAB',  # Genmab
+        'AAPL',  # Apple
+        'IBM',   # IBM
         ]
 
     # Define S3 bucket and path for storing company overview data
