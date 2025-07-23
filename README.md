@@ -1,31 +1,22 @@
 # Quant Stock Dashboard
 
-Financial Data Visualization & AWS Data Pipeline
 This project showcases a Streamlit web application designed to provide an interactive exploration of financial stock data, with a focus on quantitative analysis and visual insights for a few selected stocks using the [Alpha Vantage API](https://www.alphavantage.co/).
 
 Beyond the user-facing application, the core strength of this project lies in its automated data pipeline built entirely on AWS serverless services.
 
+To access the app press [this link](https://quant-dahsboard-frgmonxbbizzp6pswsy8uz.streamlit.app/).
 
 ##  Overview
 
 This application focuses on extracting and analyzing stock and company overview data for 4 companies - Argenx (ARGX),Genmab (GMAB), IBM (IBM) and Apple (AAPL). The workflow includes:
 
-- Automated scheduling to execute the extract code at 00:00:00 (UTC) using AWS EventsBridge
--  **Extracting** data via Alpha Vantage API 
--  **Transforming** it using pandas (cleaning and normalizing)
--  **Loading** it into a PostgreSQL database
--  **Visualizing** it using Streamlit:
-  - A **Stock Details** page showing trends for a single company
-  - A **Comparison** page to compare metrics between companies
+- **Automated** scheduling to execute the extract code at 00:00:00 (UTC) using AWS EventsBridge.
+- **Extracting** data via Alpha Vantage API, executed in AWS Lambda.
+- **Loading** raw data into an AWS S3 datalake.
+- **Transforming** the raw data using pandas code, executed in AWS lambda upon an S3 object creation event.
+-  **Visualizing** the data using Streamlit.
 
-Inesrt image of the aws drawing here.
-
----
-
-
-
-
-
+![image](./img/img1.png)
 
 ##  Tech Stack
 
@@ -37,78 +28,100 @@ Inesrt image of the aws drawing here.
 - Streamlit (frontend dashboard)
 - Alpha Vantage API (financial data)
 
----
 
-##  ETL Pipeline Details
+##  ELT Pipeline Details
 
 ###  Extraction
 
-- Daily stock prices per company via Alpha Vantage's `TIME_SERIES_DAILY_ADJUSTED` endpoint
-- Company overview details via Alpha Vantage's `OVERVIEW` endpoint
+There are two API endpoints that are called - one for daily stock inforamtion and another for company overview information. 
+
+**Daily ticker:** 
+AWS EventBridge has been configured to trigger this Lambda function every day at midnight UTC. This Lambda function is responsible for calling the Alpha Vantage API to extract the latest daily ticker data.
+
+**Company Overview:**
+The company overview extraction has not been automated, as this does not require frequent updates. Therefore this lambda function can be triggered using a HTTPS link or through executing the funciton manually in the AWS console.
+
+
+
+Both of these lambda functions require the Requests dependancy, this has to be added as a layer to the lambda function. The file required to add the layer can be found in ./etl/extract/lambda/layers.
+
+
+###  Loading
+
+
+Please see the diagram below for the structure of the data lake:
+
+![image](./img/img2.png)
+
+
+The extracted raw JSON data is immediately saved into the S3 bucket within a designated raw/ partition. The ticker data is partitioned by date, to keep a history of the data but also as the volume of data increases, data can be accessed efficiently by Athena if required. 
+
+For this project a lifecycle policy has been set up to delete data 5 days after creation to prevent any costs from being incurred by the AWS Free tier.
+
+An S3 event notification is set up to to automatically trigger a second Lambda function whenever a new object is created in the s3://data-lake-bucket/raw/ partition.
+
+The transformed and enriched data is then saved back into the same S3 bucket, but in an enriched/ partition as CSV files. This is not best practice, as if I set this up in the wrong partition I could have set up an infinite loop of lambda executions.
+
+Both raw and enriched company overview data is stored in the company-overview/ partition.
+
 
 ###  Transformation
 
-- Clean and format numeric values (`market_cap`, `high`, `low`, etc.)
-- Normalize structure for PostgreSQL
-  - Overview data is **replaced** (Work in progress)
-  - Daily stock data is **appended** (new rows only)
+The Lambda function for the daily ticker data,  reads the newly arrived raw JSON data, performs necessary transformations (e.g., cleaning, reformatting, calculating daily returns, wealth index), and enriches the dataset. Upon receiving the event notification,
 
-###  Load
+The transformed and enriched data is then saved back into the same S3 bucket, but in an enriched/ partition (e.g., sbs-stock-dash-v1.0/enriched/) as CSV files.
 
-Data is inserted into the following PostgreSQL tables:
+The company overview data is trigerred manually, as this is not an update that is required regularly, the data for this is saved backed in the same partition as the raw data.
 
-- `company_overviews`: General static information (replaced on update)
-- `daily_stock_argx`, `daily_stock_gmab`, etc.: Daily prices (high, low, date, etc.)
-
----
 
 ##  Streamlit App
 
-The dashboard includes two main pages:
+The dashboard includes three main pages:
+
+1. **Stock Overview Page**  
+   A visually intuitive heatmap illustrating stock returns across different sectors, providing quick insights into market performance.
+
 
 1. **Stock Details Page**  
-   Explore stock trends, prices, and company overview for a selected company.
+   - Explore stock trends, prices, and company overview for a selected company. 
+   - Detailed candlestick charts (e.g., using Plotly/Finnhub) to visualize open, high, low, and close prices over time, essential for technical analysis.
+   - Date vs. Return Scatter Plot: Explore the relationship between specific dates and daily returns, helping to identify trends or anomalies.
+   -Distribution of Returns: A frequency distribution plot of daily returns, offering insights into the volatility and typical return ranges of a stock.
 
 2. **Comparison Page**  
-   Compare key metrics (e.g., high/low stock price, market cap) across multiple biotech companies.
+   Visualise the cumulative wealth generated by an initial investment in selected stocks, providing a clear comparison of long-term performance.
 
-✨ Features of the Streamlit App
-The Streamlit application offers a dynamic and visually rich experience for analyzing stock performance:
+**Cost optimisation:**
 
-Interactive Stock Selection: Easily choose the stock you wish to analyze from a dropdown menu.
+The Streamlit application directly consumes the enriched data from the S3 enriched/ partition.
+- Data fetched by Streamlit is intelligently cached for 24 hours, minimizing redundant API calls to S3 and reducing costs.
+- Data is also stored in Streamlit's session state, preventing re-fetching on every page navigation and further optimizing performance and cost.
 
-General Stock Information: View key company details and overview data.
+##  Future Improvements & Lessons
 
-Sector & Returns Heatmap: A visually intuitive heatmap illustrating stock returns across different sectors, providing quick insights into market performance.
+- **AWS Glue for ETL:** I wanted to save my enriched files in the Parquet format but due to the limitation of the lambda layer size I could not use the pyarrow dependency alongside pandas.
 
-Financial Candlestick Charts: Detailed candlestick charts (e.g., using Plotly/Finnhub) to visualize open, high, low, and close prices over time, essential for technical analysis.
-
-Date vs. Return Scatter Plot: Explore the relationship between specific dates and daily returns, helping to identify trends or anomalies.
-
-Distribution of Returns: A frequency distribution plot (histogram/density plot) of daily returns, offering insights into the volatility and typical return ranges of a stock.
-
-Stock Comparison (Dedicated Page): A separate section allowing users to compare multiple stocks side-by-side, featuring:
-
-Wealth Index Plot: Visualize the cumulative wealth generated by an initial investment in selected stocks, providing a clear comparison of long-term performance.
+- **Apache Iceberg for Data Lakehouse:** Implementing Apache Iceberg on top of S3 would transform the simple S3 bucket into a powerful data lakehouse with ACID (Atomicity, Consistency, Isolation, Durability) properties. Instead of re-processing the entire dataset daily (which grows over time), Iceberg allows for efficient appending of only new data, significantly reducing processing time and costs.
 
 
+##  Setup & Installation
+To run this project locally or deploy it:
 
+### AWS Configuration:
+- Ensure you have AWS credentials configured (e.g., via aws configure).
+- Set up your S3 bucket (sbs-stock-dash-v1.0) with raw/ and enriched/ prefixes.
+- Deploy the Lambda functions (extraction and transformation) with the correct layers and configure EventBridge and S3 triggers as described in the data pipeline section.
 
----
+### Alpha Vantage API Key:
+- Obtain an API key from Alpha Vantage.
+- Set it as an environment variable in your Lambda functions and Streamlit application.
 
-##  Data Flow Diagram (Mermaid)
-TO BE ADDED: 
-1 x diagram to show data normalisaiton 
-1x diagram to show the flow of the ETL pipeline
-
-README was generated using CHATGPT.
-
-### Set up and run the ETL pipeline:
+### Install dependencies:
 ```bash
-python3 -m scripts.run_etl
+pip install -r requirements.txt
 ```
 
-### Run Streamlit app locally:
+### Run the Streamlit app:
 ```bash
 streamlit run app/main.py
 ```
@@ -123,195 +136,4 @@ pytest
 pytest tests/unittest/test_extract.py
 ```
 
-
-
-for the new README
-
-
-
-
-
-
-✨ Features of the Streamlit App
-The Streamlit application offers a dynamic and visually rich experience for analyzing stock performance:
-
-Interactive Stock Selection: Easily choose the stock you wish to analyze from a dropdown menu.
-
-General Stock Information: View key company details and overview data.
-
-Sector & Returns Heatmap: A visually intuitive heatmap illustrating stock returns across different sectors, providing quick insights into market performance.
-
-Financial Candlestick Charts: Detailed candlestick charts (e.g., using Plotly/Finnhub) to visualize open, high, low, and close prices over time, essential for technical analysis.
-
-Date vs. Return Scatter Plot: Explore the relationship between specific dates and daily returns, helping to identify trends or anomalies.
-
-Distribution of Returns: A frequency distribution plot (histogram/density plot) of daily returns, offering insights into the volatility and typical return ranges of a stock.
-
-Stock Comparison (Dedicated Page): A separate section allowing users to compare multiple stocks side-by-side, featuring:
-
-Wealth Index Plot: Visualize the cumulative wealth generated by an initial investment in selected stocks, providing a clear comparison of long-term performance.
-
-📊 More Quant Analysis Visualizations to Consider
-To further enhance the quantitative focus, you could add:
-
-Rolling Volatility Charts: Plotting rolling standard deviation of returns to understand how risk changes over time.
-
-Moving Average Crossovers: Overlaying Simple Moving Averages (SMA) and Exponential Moving Averages (EMA) on candlestick charts to identify potential buy/sell signals.
-
-Relative Strength Index (RSI): A momentum oscillator that measures the speed and change of price movements, often indicating overbought or oversold conditions.
-
-Bollinger Bands: Volatility bands plotted above and below a simple moving average, useful for identifying price extremes and potential reversals.
-
-Correlation Matrix (for comparison page): If comparing multiple stocks, a heatmap showing the correlation between their daily returns.
-
-Daily Volume Analysis: Charts showing trading volume and its relationship to price movements.
-
-🚀 The AWS Data Pipeline: The Real Magic
-The backbone of this project is an automated, serverless data pipeline hosted on AWS, ensuring fresh data is always available for the Streamlit application.
-
-Data Extraction & Transformation Flow:
-Data Source: All raw financial data is sourced from the Alpha Vantage API.
-
-Automated Daily Ticker Data Pipeline:
-
-Event Trigger: AWS EventBridge is configured to trigger a Lambda function every day at midnight UTC.
-
-Extraction Lambda: This Lambda function is responsible for calling the Alpha Vantage API to extract the latest daily ticker data.
-
-Raw Data Storage: The extracted raw JSON data is then saved into an S3 bucket within a designated raw/ partition (e.g., sbs-stock-dash-v1.0/raw/).
-
-Transformation Trigger: An S3 event notification is set up to automatically trigger a second Lambda function whenever a new object is created in the s3://sbs-stock-dash-v1.0/raw/ partition.
-
-Transformation Lambda: This Lambda function reads the newly arrived raw JSON data, performs necessary transformations (e.g., cleaning, reformatting, calculating daily returns, wealth index), and enriches the dataset.
-
-Enriched Data Storage: The transformed and enriched data is then saved back into the same S3 bucket, but in an enriched/ partition (e.g., sbs-stock-dash-v1.0/enriched/) as CSV files.
-
-Company Overview Data Pipeline (Manual):
-
-Extraction Lambda (Manual Trigger): A separate Lambda function extracts company overview data from Alpha Vantage. This is manually triggered as this data does not require daily updates.
-
-Transformation Lambda (Manual Trigger): Another Lambda function transforms this overview data, also manually triggered.
-
-Enriched Data Storage: The transformed company overview data is saved to S3 in the enriched/ partition.
-
-Cost Efficiency & Data Handling:
-Serverless & Cost-Effective: The entire pipeline leverages AWS Lambda and S3, making it highly cost-effective as you only pay for the compute time and storage you actually use.
-
-Streamlit Data Consumption: The Streamlit application directly consumes the enriched data from the S3 enriched/ partition.
-
-Client-Side Optimization:
-
-Data Caching: Data fetched by Streamlit is intelligently cached for 24 hours, minimizing redundant API calls to S3 and reducing costs.
-
-Session State: Data is also stored in Streamlit's session state, preventing re-fetching on every page navigation and further optimizing performance and cost.
-
-Lambda Layers: Lambda layers were utilized to manage dependencies (like Pandas, Boto3) for the Lambda functions, though some limitations regarding layer size were encountered.
-
-🚧 Future Improvements & Vision
-This project serves as a strong foundation, and there are several exciting avenues for future enhancement:
-
-AWS Glue for ETL: Transitioning to AWS Glue for ETL (Extract, Transform, Load) operations would be beneficial for:
-
-Larger Datasets: Glue is better suited for processing larger volumes of data compared to Lambda's execution limits.
-
-Overcoming Lambda Layer Size Limitations: Glue jobs are not constrained by the same package size limits as Lambda layers, allowing for more complex libraries and larger dependencies.
-
-Parquet Format: Enabling the storage of data in Parquet format, which is highly optimized for analytical queries and columnar storage, would significantly improve query performance and reduce storage costs.
-
-Apache Iceberg for Data Lakehouse: Implementing Apache Iceberg on top of S3 would transform the simple S3 bucket into a powerful data lakehouse with ACID (Atomicity, Consistency, Isolation, Durability) properties. This is crucial for:
-
-Incremental Data Loading: Instead of re-processing the entire dataset daily (which grows over time), Iceberg allows for efficient appending of only new data, significantly reducing processing time and costs.
-
-Schema Evolution: Handles schema changes gracefully.
-
-Time Travel: Querying historical versions of data.
-
-Data Version Control (DVC): Integrating Data Version Control (e.g., DVC) to manage and track changes to the datasets, ensuring data integrity and reproducibility.
-
-CI/CD for Data Pipeline: Implementing Continuous Integration/Continuous Deployment (CI/CD) pipelines for the AWS Lambda functions and potential Glue jobs to automate testing and deployment.
-
-Enhanced Monitoring & Alerting: Setting up more comprehensive CloudWatch alarms and dashboards for the Lambda functions, S3 bucket, and Streamlit application to proactively identify and address issues.
-
-Containerization for Streamlit: Deploying the Streamlit app using Docker containers on services like AWS ECS or EKS for better scalability, portability, and resource management.
-
-Advanced Cost Optimization: Implementing S3 lifecycle policies to automatically transition older raw data to cheaper storage tiers or delete it after a certain period.
-
-🛠️ Technologies Used
-Frontend: Streamlit, Plotly (for visualizations)
-
-Backend/Data Pipeline:
-
-AWS Lambda
-
-AWS S3
-
-AWS EventBridge
-
-Python
-
-Pandas (for data manipulation)
-
-Boto3 (AWS SDK for Python)
-
-Data Source: Alpha Vantage API
-
-🚀 Setup & Installation
-To run this project locally or deploy it:
-
-Clone the Repository:
-
-git clone https://github.com/your-username/QuantStockDash.git
-cd QuantStockDash
-
-AWS Configuration:
-
-Ensure you have AWS credentials configured (e.g., via aws configure).
-
-Set up your S3 bucket (sbs-stock-dash-v1.0) with raw/ and enriched/ prefixes.
-
-Deploy the Lambda functions (extraction and transformation) and configure EventBridge and S3 triggers as described in the data pipeline section.
-
-Alpha Vantage API Key:
-
-Obtain an API key from Alpha Vantage.
-
-Set it as an environment variable or secure secret in your Lambda functions and Streamlit application (e.g., using Streamlit secrets management or AWS Secrets Manager).
-
-Streamlit App:
-
-Install Python dependencies: pip install -r requirements.txt (you'll need streamlit, pandas, boto3, plotly, etc.).
-
-Run the Streamlit app: streamlit run app.py (assuming your main Streamlit file is app.py).
-
-🤝 Contributing
-Contributions are welcome! Feel free to open issues or submit pull requests to improve the project.
-
-Feel free to adjust any sections, add more specific details, or change the tone to better match your personal sty
-
-
-
-
-
-
-s3://data-lake-bucket/
-├── raw/
-│   ├── ticker_data/
-│   │   ├── year=YYYY/
-│   │   │   ├── month=MM/
-│   │   │   │   ├── day=DD/
-│   │   │   │   │   └── raw_ticker_data.json
-│   │   │   │   └── ... (more days)
-│   │   │   └── ... (more months)
-│   │   └── ... (more years)
-│   └── company_overview/
-│       ├──  raw_company_overview.json
-│       └── enriched_company_overview.csv
-└── enriched/
-    └── ticker_overview/
-        ├── year=YYYY/
-        │   ├── month=MM/
-        │   │   ├── day=DD/
-        │   │   │   └── enriched_data.csv
-        │   │   └── ...
-        │   └── ...
-        └── ...
+README was created with the help of Gemini.
