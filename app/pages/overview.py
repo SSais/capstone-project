@@ -25,7 +25,7 @@ for ticker in TICKERS:
     # Update the 'returns_p' in data_overview for the corresponding symbol
     company_df.loc[company_df['Symbol'] == ticker, 'daily_return_p'] = last_return_p
 
-
+# Create treemap figure
 fig = px.treemap(
     company_df,
     path=['Sector', 'Symbol'],
@@ -36,8 +36,11 @@ fig = px.treemap(
     custom_data=['daily_return_p']
 )
 
+# Need to change treemap so that all data is visible, and to show returns without needing to hover over the box. 
+
+# Update colours, 
 fig.update_layout(coloraxis_showscale=False)
 fig.update_traces(hovertemplate='<b>%{label}</b><br>Market Cap: %{value}<br>Return: %{customdata[0]:.2f}%<extra></extra>')
 
-
+# Show plot in streamlit 
 st.plotly_chart(fig)
