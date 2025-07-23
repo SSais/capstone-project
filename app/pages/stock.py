@@ -3,76 +3,70 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+# Get data from session state
+complete_ticker_df = st.session_state['daily_data']
+company_df = st.session_state['company_data']
 
-full_df = st.session_state['full_df']
+# Set up tabs
+tab1, tab2 = st.tabs(['General', 'Stock'])
 
-tab1, tab2, tab3 = st.tabs(['General', 'Stock', 'News'])
-
+# Set up sidebar
 with st.sidebar:
+    # Select box to select company ticker
     selected_company_name = st.selectbox(
         "Select Company:",
-        options=sorted(full_df['name'].unique())
+        options=sorted(complete_ticker_df['symbol'].unique())
     )
 
-    selected_company_df = full_df[full_df['name'] == selected_company_name]
-    company_data = selected_company_df.iloc[0]
+    # Filter data using the selected ticker
+    def filter_by_symbol(selected_company_name):
+        if selected_company_name == 'ARGX':
+            return data_argenx
+        if selected_company_name == 'GMAB':
+            return data_gmab
+    selected_company_df = filter_by_symbol(selected_company_name)
+    selected_overview_df = data_overview[data_overview['Symbol'] == selected_company_name]
 
     min_date = selected_company_df['date'].min()
     max_date = selected_company_df['date'].max()
     start_date = st.date_input('Start Date', min_value=min_date, max_value=max_date, value=min_date)
     end_date = st.date_input('End Date', min_value=min_date, max_value=max_date, value=max_date)
 
-    show_open = st.checkbox('Show Open Price', value=True)
-    show_high = st.checkbox('Show High Price', value=True)
-    show_low = st.checkbox('Show Low Price', value=True)
-    show_close = st.checkbox('Show Close Price', value=True)
-
-    show_candlestick = st.checkbox('Show Candlestick Plot', value=False)
     show_data = st.checkbox('Display Dataset', value=False)
 
 
 with tab1:
-    # Added as a test
-    st.dataframe(full_df)
-    
-    
-    st.title(company_data['name'])
-    st.subheader(f'**{company_data['symbol']}**')
-    st.write(f'**{company_data['exchange']}: {company_data['currency']}**')
-
-    st.write(f'{company_data['sector']}')
-    st.write(f'**Description:** {company_data['description']}')
-
-    st.write(f'**Website:** {company_data['web_site']}')
+    st.title(selected_overview_df['Name'].item())
+    st.subheader(selected_overview_df['Symbol'].item())
+    st.write(selected_overview_df['Exchange'].item() + ':' + selected_overview_df['Currency'].item())
+    st.write(selected_overview_df['Sector'].item())
+    st.write(selected_overview_df['Description'].item())
+    st.write(selected_overview_df['OfficialSite'].item())
 
 
 with tab2:
-    st.title(f'Stock Data for {selected_company_name}')
+    st.title('Stock Data for: ' + selected_overview_df['Name'].item())
 
     col1, col2 = st.columns(2)
     with col1:
-        st.write(f'**52 Week High:** {company_data['week_52_high']} {company_data['currency']}')
-        st.write(f'**Market Capitalisation:** {company_data['market_cap']}')
+        st.write(f"**52 Week High:** {selected_overview_df['52WeekHigh'].item()} {selected_overview_df['Currency'].item()}")
+        st.write(f"**Market Capitalisation:** {selected_overview_df['MarketCapitalization'].item()}")
     with col2:
-        st.write(f'**52 Week Low:** {company_data['week_52_low']} {company_data['currency']}')
-        st.write(f'**Profit Margin:** {company_data['profit_margin']} %')
+        st.write(f"**52 Week Low:** {selected_overview_df['52WeekLow'].item()} {selected_overview_df['Currency'].item()}")
+        st.write(f"**Profit Margin:** {selected_overview_df['ProfitMargin'].item()} %")
 
     filtered_data = selected_company_df[(selected_company_df['date'] >= str(start_date)) & (selected_company_df['date'] <= str(end_date))]
 
-    fig_stock = px.line(filtered_data, x='date', y='high', markers=True)
-    if show_open:
-        fig_stock.add_scatter(x=filtered_data['date'], y=filtered_data['open'], mode='lines', name='Open')
-    if show_high:
-        fig_stock.add_scatter(x=filtered_data['date'], y=filtered_data['high'], mode='lines', name='High')
-    if show_low:
-        fig_stock.add_scatter(x=filtered_data['date'], y=filtered_data['low'], mode='lines', name='Low')
-    if show_close:
-        fig_stock.add_scatter(x=filtered_data['date'], y=filtered_data['close'], mode='lines', name='Close')
+    fig_candle = go.Figure(go.Candlestick(
+                                          x=filtered_data['date'],
+                                          open=filtered_data['open'],
+                                          high=filtered_data['high'],
+                                          low =filtered_data['low'],
+                                          close=filtered_data['close']))
+    fig_candle.update_xaxes(title_text='Date')
+    fig_candle.update_yaxes(title_text='Prices')
+    st.plotly_chart(fig_candle)
 
-    fig_stock.update_layout(xaxis_title='Date (YYYY/MM/DD)', yaxis_title='Price (USD)')
-    st.plotly_chart(fig_stock)
-
-    
     fig_volume = px.bar(filtered_data, x='date', y='volume')
     fig_volume.update_layout(xaxis_title='Date (YYYY/MM/DD)', yaxis_title='Volume')
 
@@ -83,16 +77,11 @@ with tab2:
         st.write('See complete data below:')
         st.dataframe(selected_company_df)
 
-    if show_candlestick:
-        fig_candle = go.Figure(go.Candlestick(
-                                              x=filtered_data['date'],
-                                              open=filtered_data['open'],
-                                              high=filtered_data['high'],
-                                              low =filtered_data['low'],
-                                              close=filtered_data['close']))
-        fig_candle.update_xaxes(title_text='Date')
-        fig_candle.update_yaxes(title_text='Prices')
-        st.plotly_chart(fig_candle)
+    fig_scatter = px.line(filtered_data, x='date', y='daily_return_p', title='Daily returns over Time')
+    st.plotly_chart(fig_scatter)
 
-with tab3:
-    st.title('Placeholder')
+    fig_histogram = px.histogram(filtered_data, x='daily_return_p', nbins=1000)
+    st.plotly_chart(fig_histogram)
+
+    #     title='Frequency Distribution of Returns',
+    #     labels={'Returns (%)': 'Returns (%)', 'count': 'Frequency'},

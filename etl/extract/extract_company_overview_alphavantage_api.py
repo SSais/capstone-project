@@ -1,7 +1,7 @@
-import os
 import requests
 import boto3
 import json
+import os
 
 # Initialise the S3 client
 S3_client = boto3.client('s3')
@@ -9,8 +9,9 @@ S3_client = boto3.client('s3')
 def lambda_handler(event, context):
     """
     AWS Lambda handler function to extract company overview data from Alpha Vantage API. 
-    This API call will not be automated and will be called manually when needed.
+    This API call will not be automated and will be called manually when needed, using a HTTPS endpoint.
     """
+
     # Import API Key
     API_KEY = os.environ.get('MY_API_KEY')
 
@@ -48,7 +49,7 @@ def lambda_handler(event, context):
             raise Exception(f'An unexpected error occurred.\nError: {e}.')
 
     try:
-        # Loop through each ticker name and fetch data
+        # Loop through each ticker name, fetch and save the data
         for ticker in TICKER_NAMES:
             print(f'Fetching overview data for:{ticker}...')
             daily_data = get_overview_ticker_data(ticker, API_KEY)
