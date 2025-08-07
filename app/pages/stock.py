@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 complete_ticker_df = st.session_state['daily_data']
 company_df = st.session_state['company_data']
 
-st.dataframe(company_df)S
+st.dataframe(company_df)
 
 # Set up tabs
 tab1, tab2 = st.tabs(['General', 'Stock'])
